@@ -3,6 +3,8 @@
 from pathlib import Path
 import re
 import shutil
+import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 for directory, package, title, original in [
@@ -54,3 +56,5 @@ for directory, package, title, original in [
         'Licenças e direitos dos autores originais preservados em LICENSE-MIT, LICENSE-APACHE, NOTICE e ATTRIBUTION.md.\n'
         'Identidade visual Tab criada com OpenAI para este projeto; não é um produto Microsoft ou ArtCraft.\n')
     print(destination)
+
+subprocess.run([sys.executable, str(ROOT / 'scripts/apply-patches.py')], check=True)

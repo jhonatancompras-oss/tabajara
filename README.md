@@ -5,6 +5,12 @@ e no GridCraft, com nomes e ícones próprios e português do Brasil como idioma
 inicial. O seletor de idioma dos projetos de origem continua disponível.
 As traduções existentes podem apresentar trechos em inglês.
 
+Na atualização `0.9.0-tab.2`, **Arquivo → Opções → Idioma** oferece o seletor
+de idioma de revisão. A escolha fica salva para novos documentos. Selecionar
+um idioma também o aplica ao texto do documento aberto; o botão **Aplicar ao
+texto do documento** reaplica a preferência atual. O dicionário VERO de
+português do Brasil acompanha o instalador, com suas licenças e créditos.
+
 ## Desenvolvimento neste ambiente
 
 Use o checkout existente em `/workspace/tabajara`; cada tarefa na nuvem já é

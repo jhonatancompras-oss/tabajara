@@ -39,3 +39,4 @@ done
 if [[ ! -d /workspace/tabajara/build/wordcraft && ! -d /workspace/tabajara/build/gridcraft ]]; then
   python /workspace/tabajara/scripts/prepare.py
 fi
+python /workspace/tabajara/scripts/apply-patches.py

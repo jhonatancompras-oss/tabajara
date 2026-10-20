@@ -1,0 +1,7 @@
+fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0  dictionaries/pt-BR/LICENSE-GPL-3.0.txt
+996af0513df21f7496288951c41428a03c174e9e4a9d63665c57d670f845ccb1  dictionaries/pt-BR/LICENSE-LGPL-3.0.txt
+66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172  dictionaries/pt-BR/LICENSE-MPL-2.0.txt
+bb064f3db7ba5f5536da7d079773f692c5f928822e8aebc3d78259ff6cceb9e5  dictionaries/pt-BR/README_en.txt
+9974ce691fdc1fe731717d7a2dc668244405fdc2bf9bf3367eb9b29e85177c88  dictionaries/pt-BR/README_pt_BR.txt
+21d8ad2a769a60e17e2b5ea4ef11d4d593a58b9e2a82d642ef82d6a4c5523865  dictionaries/pt-BR/pt_BR.aff
+a38bfb26b68ece2834e79fe83e48d5792652970ace12db89d1b9674bf9933183  dictionaries/pt-BR/pt_BR.dic

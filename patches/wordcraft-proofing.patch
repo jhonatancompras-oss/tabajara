@@ -1,0 +1,145 @@
+--- a/crates/ui-egui/src/lib.rs
++++ b/crates/ui-egui/src/lib.rs
+@@ -278,6 +278,8 @@
+     pub window: Option<window_geometry::WindowGeometry>,
+     /// Interface language: `auto` (follow the system) or a code from [`i18n::LANGUAGES`].
+     pub language: String,
++    /// Preferred proofing language, persisted independently of the interface language.
++    pub proofing_language: Option<String>,
+     /// Editing preferences; the session owns them while running (see [`WordApp::prefs`]).
+     pub editing: wordcraft_engine::Prefs,
+     /// Read Aloud speed (1 = normal) and whether it skips citations and bibliographies.
+@@ -377,6 +379,7 @@
+             author: String::new(),
+             window: None,
+             language: i18n::AUTO.into(),
++            proofing_language: None,
+             editing: wordcraft_engine::Prefs::default(),
+             read_aloud_rate: 1.0,
+             read_aloud_skip_citations: true,
+@@ -750,6 +753,16 @@
+         self.no_document != Some(self.session.document_id())
+     }
+ 
++    /// Language used for new documents; old preference files follow the interface language.
++    pub(crate) fn proofing_language(&self) -> String {
++        self.ui
++            .proofing_language
++            .as_deref()
++            .and_then(wordcraft_engine::proof::lang::normalize_tag)
++            .or_else(|| i18n::Lang::from_pref(&self.ui.language).editing_lang().map(str::to_string))
++            .unwrap_or_else(|| "en-US".into())
++    }
++
+     /// Preferences to save between runs: the UI state plus the current user name and editing
+     /// preferences.
+     pub fn prefs(&self) -> UiState {
+@@ -1612,6 +1625,42 @@
+                 }
+                 let lang = i18n::Lang::from_pref(&self.ui.language);
+                 json!({"language": self.ui.language, "effective": lang.code(), "available": i18n::Lang::all().map(|l| json!({"code": l.code(), "name": l.name()})).collect::<Vec<_>>()})
++            }
++            "ui.proofingLanguage" => {
++                let requested = match s("value") {
++                    Some(value) => match wordcraft_engine::proof::lang::normalize_tag(value) {
++                        Some(tag) => Some(tag),
++                        None => return Some(Err("use a valid proofing language tag, such as pt-BR".into())),
++                    },
++                    None => None,
++                };
++                let apply = p.get("applyToDocument").and_then(Value::as_bool).unwrap_or(false);
++                if apply && !self.has_document() {
++                    return Some(Err("open a document before applying its proofing language".into()));
++                }
++                if let Some(tag) = requested {
++                    self.ui.proofing_language = Some(tag);
++                }
++                let language = self.proofing_language();
++                self.session.set_editing_language(Some(&language));
++                if apply {
++                    let selection = self.session.sel.clone();
++                    let column = self.session.column.clone();
++                    let result = self
++                        .session
++                        .run("select.all", &json!({}))
++                        .and_then(|_| self.session.run("review.language", &json!({"lang": language, "default": true, "noProof": false})));
++                    self.session.sel = selection;
++                    self.session.column = column;
++                    if let Err(error) = result {
++                        return Some(Err(error.to_string()));
++                    }
++                    if let Some(pending) = self.session.pending.as_mut() {
++                        pending.lang = Some(language.clone());
++                        pending.no_proof = Some(false);
++                    }
++                }
++                json!({"language": language, "appliedToDocument": apply, "hasDocument": self.has_document()})
+             }
+             "ui.recoveryDiscard" => {
+                 if let Some(answer) = s("answer") {
+@@ -1945,7 +1994,8 @@
+         // New documents are written in the interface's language when Word Tab can proof it
+         // (a Polish interface: Polish spelling, grammar and hyphenation from the first word).
+         if self.applied_editing != Some(lang) {
+-            self.session.set_editing_language(lang.editing_lang());
++            let proofing = self.proofing_language();
++            self.session.set_editing_language(Some(&proofing));
+             self.applied_editing = Some(lang);
+         }
+         options::sync(self);
+@@ -2611,6 +2661,7 @@
+             | "ui.interfaceSize"
+             | "ui.animations"
+             | "ui.language"
++            | "ui.proofingLanguage"
+             | "ui.saveChanges"
+             | "ui.openFileDialog"
+             | "ui.fileBrowser"
+--- a/crates/ui-egui/src/options.rs
++++ b/crates/ui-egui/src/options.rs
+@@ -427,10 +427,33 @@
+ fn language(app: &mut WordApp, ui: &mut Ui) {
+     section(ui, "Interface language");
+     language_picker(app, ui);
+-    // #414 (detect the document's language) goes here.
+     ui.add_space(8.0);
+     section(ui, "Proofing language");
+-    note(ui, "Spelling and grammar are checked in English (United States).");
++    let preferred = app.proofing_language();
++    let name = crate::ribbon::language_name(Some(&preferred));
++    ui.horizontal(|ui| {
++        ui.label(tl!("Proofing language"));
++        egui::ComboBox::from_id_salt("options_proofing_language").selected_text(tl!(&name)).show_ui(ui, |ui| {
++            for (tag, name) in crate::dialogs_layout::LANGUAGES {
++                if ui.selectable_label(preferred.eq_ignore_ascii_case(tag), tl!(name)).clicked()
++                    && let Err(error) = app.run("ui.proofingLanguage", json!({"value": tag, "applyToDocument": app.has_document()}))
++                {
++                    app.status(error);
++                }
++            }
++        });
++    });
++    note(ui, "This choice is saved for new documents. Selecting a language also applies it to the open document's text.");
++    if app.has_document() {
++        let current = crate::dialogs_layout::LanguageForm::read(app).lang;
++        let name = crate::ribbon::language_name(Some(&current));
++        ui.label(crate::i18n::fmt(tl!("Current document: {language}"), &[("language", tl!(&name))]));
++        if ui.button(tl!("Apply to document text")).clicked()
++            && let Err(error) = app.run("ui.proofingLanguage", json!({"applyToDocument": true}))
++        {
++            app.status(error);
++        }
++    }
+ }
+ 
+ fn accessibility(app: &mut WordApp, ui: &mut Ui) {
+--- a/crates/ui-egui/src/i18n/pt-br.tsv
++++ b/crates/ui-egui/src/i18n/pt-br.tsv
+@@ -2300,3 +2300,7 @@
+ 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Digite um tamanho em qualquer unidade, como 5 cm ou 300 px. O outro lado acompanha, e a imagem mantém as proporções.
+ 
+ 	Import…	Importar…
++
++	This choice is saved for new documents. Selecting a language also applies it to the open document's text.	A escolha fica salva para novos documentos. Ao selecionar um idioma, ele também é aplicado ao texto do documento aberto.
++	Current document: {language}	Documento atual: {language}
++	Apply to document text	Aplicar ao texto do documento

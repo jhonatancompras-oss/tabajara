@@ -7,6 +7,8 @@ export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
 export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
 export NSISDIR=/workspace/toolchain/usr/share/nsis
 mkdir -p dist
+python scripts/apply-patches.py
+sha256sum -c dictionaries/SHA256SUMS.txt
 for package in wordcraft gridcraft; do
   if [[ "$package" == wordcraft ]]; then
     target=/workspace/wordcraft/target

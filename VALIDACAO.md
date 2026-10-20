@@ -18,4 +18,27 @@ As primeiras tentativas de Wine exigiram configurar seus arquivos de dados e a D
 
 Os checkouts originais não têm alterações rastreadas. As personalizações são reproduzidas pelo script em cópias geradas.
 
-Não foram executadas a suíte completa `cargo xtask ci`, validação em um computador Windows real ou publicação de uma release pública. Os instaladores personalizados não possuem assinatura digital. As bases são código 0.9.0 em desenvolvimento; as traduções de origem ainda podem conter trechos em inglês.
+Não foram executadas a suíte completa `cargo xtask ci` ou validação em um computador Windows real. Os downloads foram publicados no repositório e vinculados às releases do GitHub. Os instaladores personalizados não possuem assinatura digital. As bases são código 0.9.0 em desenvolvimento; as traduções de origem ainda podem conter trechos em inglês.
+
+
+## Atualização 0.9.0-tab.2 — idioma de revisão
+
+A tela de idioma tinha uma mensagem fixa afirmando que a revisão era em inglês.
+Foi substituída por um seletor de idioma de revisão, independente do idioma da
+interface, com preferência persistida e aplicação explícita ao texto aberto.
+As alterações de fonte estão em `patches/wordcraft-proofing.patch`; o preparo
+aplica esse patch de forma repetível sem modificar os checkouts originais.
+
+O instalador inclui os dados do dicionário brasileiro VERO, sem substituir
+dicionários preexistentes nem excluir dados do usuário na desinstalação.
+A origem, os hashes e as licenças estão em `dictionaries/`.
+
+Verificações da atualização:
+
+- Compilação de release do Word Tab e do instalador, sem avisos. Excel Tab reutilizado sem alteração.
+- Aplicação do patch em uma cópia limpa confere byte a byte com o fonte compilado; reaplicação detecta que já está aplicado.
+- `scripts/check-proofing.py` passou com o executável instalado pelo pacote: preferências antigas, idioma inglês/português, conversão do texto aberto, validação de tags DOCX, dicionário brasileiro real, código inválido rejeitado, persistência após reiniciar e independência do idioma da interface.
+- O corretor aceitou as palavras da frase de teste em português e identificou `cazaaa` como erro ortográfico.
+- Os cliques reais do seletor trocaram inglês por português. Um clique real em **Aplicar ao texto do documento** converteu o DOCX de `en-US` para `pt-BR`, incluindo a linguagem padrão e as marcações explícitas do texto.
+- Capturas da tela de opções com e sem documento foram inspecionadas.
+- O executável instalado confere com o hash do binário compilado.

@@ -6,6 +6,11 @@ Unicode true
 !error "APP_NAME is required"
 !endif
 Name "${APP_NAME}"
+VIProductVersion "0.9.0.2"
+VIAddVersionKey /LANG=1046 "ProductName" "${APP_NAME}"
+VIAddVersionKey /LANG=1046 "FileVersion" "0.9.0.2"
+VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do Word Tab e Excel Tab"
+VIAddVersionKey /LANG=1046 "LegalCopyright" "Autores WordCraft e GridCraft; consulte as licenças."
 OutFile "${OUTPUT}"
 InstallDir "$LOCALAPPDATA\Programs\${APP_NAME}"
 RequestExecutionLevel user
@@ -52,8 +57,18 @@ Section "Instalar"
   File "${SECOND_SOURCE}/TAB-ORIGIN.txt"
   SetOutPath "$INSTDIR"
   File /oname=IDENTIDADE-VISUAL.md "${SOURCE}/../../assets/ATRIBUICAO.md"
+  ; Keep any spelling dictionary the user already installed. Preferences and
+  ; dictionaries are user data and remain available after uninstalling.
+  SetOutPath "$LOCALAPPDATA\Word Tab\dictionaries"
+  SetOverwrite off
+  File "${SOURCE}/../../dictionaries/pt-BR/pt_BR.aff"
+  File "${SOURCE}/../../dictionaries/pt-BR/pt_BR.dic"
+  File "${SOURCE}/../../dictionaries/pt-BR/*.txt"
+  SetOverwrite on
+  SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\Desinstalar.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion" "0.9.0.2"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" '"$INSTDIR\Desinstalar.exe"'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoModify" 1

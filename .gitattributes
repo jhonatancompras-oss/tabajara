@@ -1,0 +1,4 @@
+# Preserve upstream dictionary data and license notices byte for byte.
+dictionaries/pt-BR/* -whitespace
+# Unified diff context includes intentional leading spaces and tabs.
+patches/*.patch -whitespace
