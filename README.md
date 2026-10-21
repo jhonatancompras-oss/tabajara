@@ -22,6 +22,17 @@ o salvamento automático e os menus de desfazer e compartilhar. O menu oferece
 com prévia e configurações, antes de enviar à impressora. Os nomes dos documentos
 são preservados.
 
+A atualização `0.9.0-tab.5` acrescenta à prévia o intervalo de impressão e quatro
+margens editáveis em centímetros. Definir/limpar a área, alterar margens e ajustar
+a uma página atualizam a prévia. Essas configurações são salvas no XLSX. No menu de três pontos, a seção
+**Fixar na barra de acesso rápido** escolhe os comandos que permanecem visíveis;
+o botão direito sobre um atalho permite removê-lo. A seleção de atalhos e o
+estado do salvamento automático são preservados ao fechar e reabrir o aplicativo.
+O salvamento automático atua sobre arquivos XLSX já salvos em disco, incluindo
+extensões em maiúsculas. A gravação pendente agenda a atualização da janela para
+não depender de outro clique. Em caso de erro, exibe um aviso, desativa novas
+tentativas automáticas e mantém as alterações abertas para salvar novamente.
+
 ## Desenvolvimento neste ambiente
 
 Use o checkout existente em `/workspace/tabajara`; cada tarefa na nuvem já é
@@ -80,3 +91,14 @@ no display de teste e rode `python scripts/check-excel-menu.py`. O teste cria um
 planilha com duas páginas e nome com acento, abre a prévia pelo menu, confere
 Ctrl+P e Imprimir, verifica que nenhuma impressão foi enviada e reabre o arquivo
 para conferir os dados. As capturas ficam em `build/menu-validation/`.
+
+A regressão das preferências usa um perfil Wine descartável. Fixe o comando de
+prévia, ative o salvamento automático, edite um XLSX salvo e feche o programa;
+ao reabrir, `python scripts/check-excel-preferences.py` confere a restauração e o
+funcionamento do botão. `python scripts/check-excel-print-settings.py` exercita
+a definição/limpeza do intervalo, margens em centímetros, ajuste a uma página,
+reabertura do XLSX, Salvar/Desfazer/Refazer e gravação automática sem interação.
+`python scripts/check-excel-autosave-error.py` simula um destino indisponível
+apenas em arquivos de teste e confere o aviso de erro e a preservação dos dados.
+Os testes de ponteiro usam a janela de 1360×900 no display virtual e o perfil em
+`build/print-settings-validation/`; não use um perfil pessoal.

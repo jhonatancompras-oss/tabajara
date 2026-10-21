@@ -1,6 +1,19 @@
 --- a/crates/ui-egui/src/ribbon.rs
 +++ b/crates/ui-egui/src/ribbon.rs
-@@ -38,6 +38,7 @@
+@@ -35,9 +35,20 @@
+ const TITLE_CONTROL_H: f32 = if MAC { 22.0 } else { 26.0 };
+ const _: () = assert!(TITLE_CONTROL_H < TITLE_BAR_H, "title-bar controls keep a margin above and below");
+ 
++const QUICK_COMMANDS: &[(&str, &str, Icon)] = &[
++    ("file.new", "New Workbook", Icon::Plus),
++    ("file.open", "Open…", Icon::OpenFolder),
++    ("file.saveAs", "Save As…", Icon::Save),
++    ("data.sortAscending", "Sort A to Z", Icon::SortAsc),
++    ("formulas.calculateNow", "Calculate Now", Icon::Calc),
++    ("preview", "Print Preview…", Icon::PageLayout),
++    ("file.print", "Print…", Icon::Print),
++];
++
  pub fn title_bar(app: &mut SheetApp, ui: &mut Ui) {
      let t = Tokens::get(ui.ctx());
      let ch = TITLE_CONTROL_H;
@@ -8,7 +21,7 @@
      egui::Panel::top("title_bar").exact_size(TITLE_BAR_H).frame(egui::Frame::NONE.fill(t.window)).show(ui, |ui| {
          let rect = ui.max_rect();
          // Dragging the empty title area moves the window.
-@@ -52,14 +53,14 @@
+@@ -52,14 +63,14 @@
          ui.horizontal_centered(|ui| {
              ui.add_space(TITLE_LEFT_PAD);
              // AutoSave toggle (saves after each change when the workbook has a file).
@@ -25,7 +38,7 @@
                  app.grid.toggle_autosave();
              }
              ui.add_space(6.0);
-@@ -84,10 +85,10 @@
+@@ -84,10 +95,10 @@
                  let labels: Vec<String> =
                      app.session.active().map(|d| d.undo.iter().rev().take(20).map(|e| e.label.clone()).collect()).unwrap_or_default();
                  if labels.is_empty() {
@@ -38,7 +51,7 @@
                          app.run_or_alert("edit.undo", json!({"steps": i + 1}));
                      }
                  }
-@@ -104,12 +105,15 @@
+@@ -104,19 +115,55 @@
                      ("Sort A to Z", "data.sortAscending"),
                      ("Calculate Now", "formulas.calculateNow"),
                  ] {
@@ -54,10 +67,52 @@
 +                }
 +                if ui.button(lang.tr("Print…")).clicked() {
 +                    app.run_or_alert("file.print", json!({}));
++                }
++                ui.separator();
++                ui.label(lang.tr("Pin to Quick Access Toolbar"));
++                for (id, label, _) in QUICK_COMMANDS {
++                    let mut pinned = app.ui.quick_access.iter().any(|saved| saved == id);
++                    if ui.checkbox(&mut pinned, lang.tr(label)).changed() {
++                        if pinned {
++                            app.ui.quick_access.push((*id).to_owned());
++                        } else {
++                            app.ui.quick_access.retain(|saved| saved != id);
++                        }
++                    }
                  }
              });
++            for (id, label, icon) in QUICK_COMMANDS {
++                if !app.ui.quick_access.iter().any(|saved| saved == id) {
++                    continue;
++                }
++                let response = icon_button(ui, *icon, t.text_dim, label, vec2(26.0, ch));
++                response.context_menu(|ui| {
++                    if ui.button(lang.tr("Remove from Quick Access Toolbar")).clicked() {
++                        app.ui.quick_access.retain(|saved| saved != id);
++                        ui.close();
++                    }
++                });
++                if response.clicked() {
++                    if *id == "preview" {
++                        app.open_backstage(crate::backstage::Page::Print);
++                    } else if app.commit_edit(0, 0, false, false) {
++                        app.run_or_alert(id, json!({}));
++                    }
++                }
++            }
              // Centered title.
-@@ -131,13 +135,13 @@
+             let title = app.session.active().map(|d| d.display_title()).unwrap_or_default();
+             let dirty = app.session.active().is_some_and(|d| d.is_dirty());
+-            ui.painter().text(
+-                rect.center(),
++            let title_left = ui.cursor().left() + 8.0;
++            let title_rect = Rect::from_min_max(pos2(title_left, rect.top()), pos2((rect.right() - 260.0).max(title_left), rect.bottom()));
++            ui.painter().with_clip_rect(title_rect).text(
++                title_rect.center(),
+                 Align2::CENTER_CENTER,
+                 format!("{title}{}", if dirty { " •" } else { "" }),
+                 theme::ui_bold(13.0),
+@@ -131,13 +178,13 @@
                  }
                  let share = small_button(ui, Icon::Share, "Share", "Share: export or save a copy", true);
                  egui::Popup::menu(&share).show(|ui| {
@@ -73,7 +128,7 @@
                              app.open_dialog("saveCopy", json!({"format": fmt}));
                          }
                      }
-@@ -2423,7 +2427,7 @@
+@@ -2423,7 +2470,7 @@
          Key::N => Some(("file.new", json!({}))),
          Key::W => Some(("file.close", json!({}))),
          Key::P => {
@@ -84,7 +139,7 @@
          Key::K => {
 --- a/crates/ui-egui/src/i18n/pt.rs
 +++ b/crates/ui-egui/src/i18n/pt.rs
-@@ -956,6 +956,34 @@
+@@ -956,6 +956,41 @@
          "Protect\nSheet" => "Proteger\nPlanilha",
          "Watch\nWindow" => "Janela de\nInspeção",
          "Workbook\nStatistics" => "Estatísticas da\nPasta de Trabalho",
@@ -116,6 +171,184 @@
 +        "Print job submitted: {receipt}" => "Documento enviado para impressão: {receipt}",
 +        "Print failed: {error}" => "Falha na impressão: {error}",
 +        "Print failed: the printing worker stopped." => "Falha na impressão: o serviço de impressão foi interrompido.",
++        "Current print area" => "Área de impressão atual",
++        "Entire used range" => "Todo o intervalo utilizado",
++        "Margins (cm)" => "Margens (cm)",
++        "Enter a range such as A1:F40." => "Digite um intervalo como A1:F40.",
++        "Pin to Quick Access Toolbar" => "Fixar na barra de acesso rápido",
++        "Remove from Quick Access Toolbar" => "Remover da barra de acesso rápido",
++        "AutoSave failed:" => "Falha no salvamento automático:",
          _ => return None,
      })
  }
+--- a/crates/ui-egui/src/backstage.rs
++++ b/crates/ui-egui/src/backstage.rs
+@@ -110,6 +110,7 @@
+     pub fit_to_page: bool,
+     /// Print: the previewed page (0-based).
+     preview_page: usize,
++    print_area_draft: Option<(u64, String)>,
+     /// Print: the preview for (document, revision, whole workbook, fit to page).
+     preview: Option<((u64, u64, bool, bool), Json)>,
+     /// Save As: the chosen file type (an extension from [`SAVE_TYPES`]).
+@@ -131,6 +132,7 @@
+             print_all: false,
+             fit_to_page: false,
+             preview_page: 0,
++            print_area_draft: None,
+             preview: None,
+             save_format: "xlsx",
+             recent: RecentFiles::default(),
+@@ -695,6 +697,7 @@
+         dim(ui, lang.tr("No workbook is open."));
+         return;
+     };
++    bs.fit_to_page = app.session.active().and_then(|d| d.wb.active()).is_some_and(|sh| sh.print.fit_to == Some((1, 1)));
+     let mut params = json!({"sheets": if bs.print_all { "all" } else { "active" }});
+     if bs.fit_to_page {
+         params["fitToPage"] = json!(true);
+@@ -707,7 +710,9 @@
+     let pages: Vec<Json> = bs.preview.as_ref().and_then(|(_, p)| p.get("pageList")).and_then(Json::as_array).cloned().unwrap_or_default();
+     ui.horizontal_top(|ui| {
+         ui.vertical(|ui| {
+-            ui.set_width(250.0);
++            ui.set_width(300.0);
++            egui::ScrollArea::vertical().id_salt("print_settings").max_height(ui.available_height()).show(ui, |ui| {
++            ui.set_width(300.0);
+             if let Some(discover) = &app.services.printers {
+                 crate::printing::show(&mut app.printing, ui, discover, |label| lang.tr(label).to_owned());
+             }
+@@ -730,12 +735,15 @@
+             });
+             ui.add_space(8.0);
+             if ui.checkbox(&mut bs.fit_to_page, lang.tr("Fit Sheet on One Page")).changed() {
++                app.run_or_alert("pageLayout.pageSetup", json!({"fitToPage": bs.fit_to_page}));
+                 bs.preview_page = 0;
+             }
+             ui.add_space(8.0);
++            print_settings(app, ui, bs);
+             if ui.link(lang.tr("Page Setup…")).clicked() {
+                 app.open_dialog("pageSetup", json!({}));
+             }
++            });
+         });
+         ui.add_space(24.0);
+         ui.vertical(|ui| {
+@@ -778,6 +786,53 @@
+             });
+         });
+     });
++}
++
++/// Edit the active sheet's persisted settings; preview invalidates on its revision.
++fn print_settings(app: &mut SheetApp, ui: &mut Ui, bs: &mut Backstage) {
++    let lang = app.ui.language;
++    let Some(d) = app.session.active() else { return };
++    let Some(sh) = d.wb.active() else { return };
++    let uid = d.uid;
++    let saved_area = sh.print.print_area.map(|r| r.a1()).unwrap_or_default();
++    let selection = d.selection.current().a1();
++    let margins = sh.print.margins;
++    if bs.print_area_draft.as_ref().is_none_or(|(id, _)| *id != uid) {
++        bs.print_area_draft = Some((uid, if saved_area.is_empty() { selection } else { saved_area.clone() }));
++    }
++    ui.label(lang.tr("Print Area"));
++    let draft = &mut bs.print_area_draft.as_mut().unwrap().1;
++    ui.add(egui::TextEdit::singleline(draft).desired_width(230.0).hint_text("A1:F40"));
++    ui.horizontal_wrapped(|ui| {
++        if ui.button(lang.tr("Set Print Area")).clicked() {
++            if draft.trim().is_empty() {
++                app.alert(lang.tr("Enter a range such as A1:F40.").to_owned());
++            } else {
++                app.run_or_alert("pageLayout.pageSetup", json!({"printArea": draft.trim()}));
++                bs.preview_page = 0;
++            }
++        }
++        if ui.button(lang.tr("Clear Print Area")).clicked() {
++            app.run_or_alert("pageLayout.pageSetup", json!({"printArea": ""}));
++            bs.preview_page = 0;
++        }
++    });
++    ui.label(format!("{}: {}", lang.tr("Current print area"), if saved_area.is_empty() { lang.tr("Entire used range") } else { &saved_area }));
++    ui.add_space(8.0);
++    ui.label(lang.tr("Margins (cm)"));
++    egui::Grid::new("preview_margins").num_columns(2).show(ui, |ui| {
++        for (i, key, label) in [(0, "left", "Left"), (1, "right", "Right"), (2, "top", "Top"), (3, "bottom", "Bottom")] {
++            ui.label(lang.tr(label));
++            let mut cm = f64::from(margins[i]) * 2.54;
++            if ui.add(egui::DragValue::new(&mut cm).speed(0.05).range(0.0..=7.62).max_decimals(2).suffix(" cm")).changed() {
++                let mut params = json!({});
++                params[key] = json!(cm / 2.54);
++                app.run_or_alert("pageLayout.pageSetup", params);
++            }
++            ui.end_row();
++        }
++    });
++    ui.add_space(8.0);
+ }
+ 
+ /// Most rows and columns one preview page draws (a page holds far fewer at any readable scale).
+--- a/crates/ui-egui/src/lib.rs
++++ b/crates/ui-egui/src/lib.rs
+@@ -60,6 +60,8 @@
+     /// Enable AutoComplete for cell values (File ▸ Options ▸ Editing): typed text is completed
+     /// from the one matching entry in the same column.
+     pub autocomplete: bool,
++    pub autosave: bool,
++    pub quick_access: Vec<String>,
+     pub recent: Vec<String>,
+     /// One-shot keytip request for a ribbon control: set when a keytip action resolves to
+     /// [`keytips::Action::Control`], consumed (and cleared) by the control's render site.
+@@ -103,6 +105,8 @@
+             status_bar: true,
+             animations: true,
+             autocomplete: true,
++            autosave: false,
++            quick_access: Vec::new(),
+             recent: vec![],
+             keytip_invoke: None,
+             language: i18n::Language::En,
+@@ -1189,16 +1193,25 @@
+             }
+         }
+         self.perf.last = now;
+-        // AutoSave: save workbooks that have a file shortly after they change.
+-        if self.grid.autosave
++        self.ui.autosave = self.grid.autosave;
++        // Schedule a frame while a saved workbook is dirty: an idle window must
++        // not wait for another mouse/keyboard event before AutoSave runs.
++        let autosave_pending = self.grid.autosave
+             && self.editor.is_none()
+             && self.text_box_editor.is_none()
+-            && now - self.grid.last_autosave > 2000.0
+-            && self.session.active().is_some_and(|d| d.is_dirty() && d.path.as_deref().is_some_and(|p| p.ends_with(".xlsx")))
+-        {
+-            self.grid.last_autosave = now;
+-            self.store_view_state();
+-            let _ = self.session.run("file.save", json!({}));
++            && self.session.active().is_some_and(|d| d.is_dirty() && d.path.as_deref().is_some_and(|p|
++                std::path::Path::new(p).extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("xlsx"))));
++        if autosave_pending {
++            ctx.request_repaint_after(std::time::Duration::from_millis(500));
++            if now - self.grid.last_autosave > 2000.0 {
++                self.grid.last_autosave = now;
++                self.store_view_state();
++                if let Err(error) = self.session.run("file.save", json!({})) {
++                    self.grid.autosave = false;
++                    self.ui.autosave = false;
++                    self.alert(format!("{} {}", self.ui.language.tr("AutoSave failed:"), clean_error(&error)));
++                }
++            }
+         }
+         // Window title.
+         if let Some(d) = self.session.active() {
+--- a/apps/gridcraft/src/main.rs
++++ b/apps/gridcraft/src/main.rs
+@@ -114,6 +114,7 @@
+         app.ui = ui;
+         app.ui.language = language;
+     }
++    app.grid.autosave = app.ui.autosave;
+     if let Ok(b) = std::fs::read(dir.join("prefs.json"))
+         && let Ok(p) = serde_json::from_slice(&b)
+     {
