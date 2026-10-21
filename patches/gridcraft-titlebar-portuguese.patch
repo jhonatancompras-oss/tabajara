@@ -1,0 +1,121 @@
+--- a/crates/ui-egui/src/ribbon.rs
++++ b/crates/ui-egui/src/ribbon.rs
+@@ -38,6 +38,7 @@
+ pub fn title_bar(app: &mut SheetApp, ui: &mut Ui) {
+     let t = Tokens::get(ui.ctx());
+     let ch = TITLE_CONTROL_H;
++    let lang = app.ui.language;
+     egui::Panel::top("title_bar").exact_size(TITLE_BAR_H).frame(egui::Frame::NONE.fill(t.window)).show(ui, |ui| {
+         let rect = ui.max_rect();
+         // Dragging the empty title area moves the window.
+@@ -52,14 +53,14 @@
+         ui.horizontal_centered(|ui| {
+             ui.add_space(TITLE_LEFT_PAD);
+             // AutoSave toggle (saves after each change when the workbook has a file).
+-            ui.label(egui::RichText::new("AutoSave").font(theme::ui_font(12.5)).color(t.text_dim));
++            ui.label(egui::RichText::new(lang.tr("AutoSave")).font(theme::ui_font(12.5)).color(t.text_dim));
+             let on = app.grid.autosave();
+             let (r, resp) = ui.allocate_exact_size(vec2(30.0, 16.0), Sense::click());
+             ui.painter().rect_filled(r, 8.0, if on { t.accent } else { Color32::TRANSPARENT });
+             ui.painter().rect_stroke(r, 8.0, Stroke::new(1.0, if on { t.accent } else { t.text_dim }), StrokeKind::Inside);
+             let knob = if on { pos2(r.right() - 8.0, r.center().y) } else { pos2(r.left() + 8.0, r.center().y) };
+             ui.painter().circle_filled(knob, 5.0, if on { Color32::WHITE } else { t.text_dim });
+-            if resp.on_hover_text("AutoSave: save after every change (workbooks saved to a file)").clicked() {
++            if resp.on_hover_text(lang.tr("AutoSave: save after every change (workbooks saved to a file)")).clicked() {
+                 app.grid.toggle_autosave();
+             }
+             ui.add_space(6.0);
+@@ -84,10 +85,10 @@
+                 let labels: Vec<String> =
+                     app.session.active().map(|d| d.undo.iter().rev().take(20).map(|e| e.label.clone()).collect()).unwrap_or_default();
+                 if labels.is_empty() {
+-                    ui.label("Can't Undo");
++                    ui.label(lang.tr("Can't Undo"));
+                 }
+                 for (i, l) in labels.iter().enumerate() {
+-                    if ui.button(format!("Undo {l}")).clicked() {
++                    if ui.button(format!("{} {l}", lang.tr("Undo"))).clicked() {
+                         app.run_or_alert("edit.undo", json!({"steps": i + 1}));
+                     }
+                 }
+@@ -104,12 +105,15 @@
+                     ("Sort A to Z", "data.sortAscending"),
+                     ("Calculate Now", "formulas.calculateNow"),
+                 ] {
+-                    if ui.button(label).clicked() {
++                    if ui.button(lang.tr(label)).clicked() {
+                         app.run_or_alert(id, json!({}));
+                     }
+                 }
+-                if ui.button("Print…").clicked() {
+-                    app.print_now(json!({}));
++                if ui.button(lang.tr("Print Preview…")).clicked() {
++                    app.open_backstage(crate::backstage::Page::Print);
++                }
++                if ui.button(lang.tr("Print…")).clicked() {
++                    app.run_or_alert("file.print", json!({}));
+                 }
+             });
+             // Centered title.
+@@ -131,13 +135,13 @@
+                 }
+                 let share = small_button(ui, Icon::Share, "Share", "Share: export or save a copy", true);
+                 egui::Popup::menu(&share).show(|ui| {
+-                    if ui.button("Export as PDF…").clicked() {
++                    if ui.button(lang.tr("Export as PDF…")).clicked() {
+                         app.run_or_alert("file.exportPdf", json!({}));
+                     }
+                     for (label, fmt) in
+                         [("Save a Copy as Excel Workbook (.xlsx)…", "xlsx"), ("Export as CSV…", "csv"), ("Export as Web Page (.html)…", "html")]
+                     {
+-                        if ui.button(label).clicked() {
++                        if ui.button(lang.tr(label)).clicked() {
+                             app.open_dialog("saveCopy", json!({"format": fmt}));
+                         }
+                     }
+@@ -2423,7 +2427,7 @@
+         Key::N => Some(("file.new", json!({}))),
+         Key::W => Some(("file.close", json!({}))),
+         Key::P => {
+-            app.print_now(json!({}));
++            app.run_or_alert("file.print", json!({}));
+             None
+         }
+         Key::K => {
+--- a/crates/ui-egui/src/i18n/pt.rs
++++ b/crates/ui-egui/src/i18n/pt.rs
+@@ -956,6 +956,34 @@
+         "Protect\nSheet" => "Proteger\nPlanilha",
+         "Watch\nWindow" => "Janela de\nInspeção",
+         "Workbook\nStatistics" => "Estatísticas da\nPasta de Trabalho",
++        "New Workbook" => "Nova pasta de trabalho",
++        "Save As…" => "Salvar como…",
++        "Print…" => "Imprimir…",
++        "Export as PDF…" => "Exportar como PDF…",
++        "Save a Copy as Excel Workbook (.xlsx)…" => "Salvar uma cópia como pasta de trabalho do Excel (.xlsx)…",
++        "Export as CSV…" => "Exportar como CSV…",
++        "Export as Web Page (.html)…" => "Exportar como página da Web (.html)…",
++        "Can't Undo" => "Não é possível desfazer",
++        "AutoSave: save after every change (workbooks saved to a file)" => "Salvamento automático: salvar após cada alteração (pastas de trabalho salvas em arquivo)",
++        "Print Preview…" => "Visualizar impressão…",
++        "Printer" => "Impressora",
++        "Select a printer" => "Selecione uma impressora",
++        "Refresh printers" => "Atualizar impressoras",
++        "Copies" => "Cópias",
++        "Two-sided printing" => "Impressão frente e verso",
++        "Printer default" => "Padrão da impressora",
++        "One-sided" => "Somente frente",
++        "Two-sided: long edge" => "Frente e verso: borda longa",
++        "Two-sided: short edge" => "Frente e verso: borda curta",
++        "Grayscale" => "Escala de cinza",
++        "Finding printers…" => "Procurando impressoras…",
++        "No printers found. Configure a system printer or export a PDF." => "Nenhuma impressora encontrada. Configure uma impressora no sistema ou exporte um PDF.",
++        "Printer discovery failed." => "Não foi possível localizar as impressoras.",
++        "Submitting print job…" => "Enviando para impressão…",
++        "Print job submitted." => "Documento enviado para impressão.",
++        "Print job submitted: {receipt}" => "Documento enviado para impressão: {receipt}",
++        "Print failed: {error}" => "Falha na impressão: {error}",
++        "Print failed: the printing worker stopped." => "Falha na impressão: o serviço de impressão foi interrompido.",
+         _ => return None,
+     })
+ }

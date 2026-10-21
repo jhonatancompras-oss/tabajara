@@ -16,6 +16,12 @@ aplicativos padrão do Windows. Reinstale por cima da versão anterior; depois
 clique com o botão direito no arquivo e escolha **Abrir com → Word Tab**
 ou **Excel Tab**. A escolha do aplicativo padrão continua com o usuário.
 
+A atualização `0.9.0-tab.4` traduz o menu de três pontos do cabeçalho do Excel Tab,
+o salvamento automático e os menus de desfazer e compartilhar. O menu oferece
+**Visualizar impressão…**; **Imprimir…** e Ctrl+P também abrem a tela de impressão
+com prévia e configurações, antes de enviar à impressora. Os nomes dos documentos
+são preservados.
+
 ## Desenvolvimento neste ambiente
 
 Use o checkout existente em `/workspace/tabajara`; cada tarefa na nuvem já é
@@ -68,3 +74,9 @@ instalador real sob Wine: instalação, reinstalação, comandos com caminhos en
 aspas, extensões compatíveis, registro dos aplicativos e limpeza na desinstalação.
 A verificação usa apenas o prefixo descartável do helper e preserva um aplicativo
 padrão de teste e uma entrada de outro programa no `Abrir com`.
+
+Para verificar o menu e a prévia, inicie o Excel Tab instalado com `--control 7979`
+no display de teste e rode `python scripts/check-excel-menu.py`. O teste cria uma
+planilha com duas páginas e nome com acento, abre a prévia pelo menu, confere
+Ctrl+P e Imprimir, verifica que nenhuma impressão foi enviada e reabre o arquivo
+para conferir os dados. As capturas ficam em `build/menu-validation/`.

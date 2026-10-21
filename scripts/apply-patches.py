@@ -4,8 +4,8 @@ from pathlib import Path
 import subprocess
 
 root = Path(__file__).resolve().parents[1]
-for patch in sorted((root / 'patches').glob('wordcraft-*.patch')):
-    command = ['patch', '--batch', '--fuzz=0', '-p1', '-d', str(root / 'build/wordcraft'), '-i', str(patch)]
+for patch in sorted((root / 'patches').glob('*craft-*.patch')):
+    command = ['patch', '--batch', '--fuzz=0', '-p1', '-d', str(root / 'build' / patch.name.split('-', 1)[0]), '-i', str(patch)]
     if subprocess.run(command + ['--dry-run', '--reverse'], capture_output=True).returncode == 0:
         print(f'{patch.name}: already applied')
         continue
