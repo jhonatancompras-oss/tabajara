@@ -11,6 +11,11 @@ um idioma também o aplica ao texto do documento aberto; o botão **Aplicar ao
 texto do documento** reaplica a preferência atual. O dicionário VERO de
 português do Brasil acompanha o instalador, com suas licenças e créditos.
 
+A atualização `0.9.0-tab.3` registra os dois programas no **Abrir com** e nos
+aplicativos padrão do Windows. Reinstale por cima da versão anterior; depois
+clique com o botão direito no arquivo e escolha **Abrir com → Word Tab**
+ou **Excel Tab**. A escolha do aplicativo padrão continua com o usuário.
+
 ## Desenvolvimento neste ambiente
 
 Use o checkout existente em `/workspace/tabajara`; cada tarefa na nuvem já é
@@ -57,3 +62,9 @@ O helper `bash scripts/wine.sh caminho.exe` permite executar verificações de
 Windows sob Wine no Linux. Para testar a interface, primeiro inicie um display
 virtual e defina `DISPLAY=:99` e `WGPU_BACKEND=gl`. Isso não substitui a
 validação da interface e da instalação em um computador Windows.
+
+Com o display virtual ativo, `python scripts/check-associations.py` testa o
+instalador real sob Wine: instalação, reinstalação, comandos com caminhos entre
+aspas, extensões compatíveis, registro dos aplicativos e limpeza na desinstalação.
+A verificação usa apenas o prefixo descartável do helper e preserva um aplicativo
+padrão de teste e uma entrada de outro programa no `Abrir com`.

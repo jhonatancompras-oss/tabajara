@@ -2,13 +2,14 @@ Target amd64-unicode
 Unicode true
 !include "MUI2.nsh"
 !include "x64.nsh"
+!include "file-associations.nsh"
 !ifndef APP_NAME
 !error "APP_NAME is required"
 !endif
 Name "${APP_NAME}"
-VIProductVersion "0.9.0.2"
+VIProductVersion "0.9.0.3"
 VIAddVersionKey /LANG=1046 "ProductName" "${APP_NAME}"
-VIAddVersionKey /LANG=1046 "FileVersion" "0.9.0.2"
+VIAddVersionKey /LANG=1046 "FileVersion" "0.9.0.3"
 VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do Word Tab e Excel Tab"
 VIAddVersionKey /LANG=1046 "LegalCopyright" "Autores WordCraft e GridCraft; consulte as licenças."
 OutFile "${OUTPUT}"
@@ -66,15 +67,17 @@ Section "Instalar"
   File "${SOURCE}/../../dictionaries/pt-BR/*.txt"
   SetOverwrite on
   SetOutPath "$INSTDIR"
+  !insertmacro TabAssociations Register
   WriteUninstaller "$INSTDIR\Desinstalar.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion" "0.9.0.2"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayVersion" "0.9.0.3"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" '"$INSTDIR\Desinstalar.exe"'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoRepair" 1
 SectionEnd
 Section "Uninstall"
+  !insertmacro TabAssociations Unregister
   Delete "$SMPROGRAMS\Word Tab.lnk"
   Delete "$DESKTOP\Word Tab.lnk"
   Delete "$SMPROGRAMS\Excel Tab.lnk"
